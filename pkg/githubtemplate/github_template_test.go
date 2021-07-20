@@ -160,7 +160,6 @@ func TestFindLegacy(t *testing.T) {
 			name: "Template in root",
 			prepare: []string{
 				"README.md",
-				"ISSUE_TEMPLATE",
 				"issue_template.md",
 				"issue_template.txt",
 				"pull_request_template.md",
@@ -171,6 +170,32 @@ func TestFindLegacy(t *testing.T) {
 				name:    "ISSUE_TEMPLATE",
 			},
 			want: path.Join(tmpdir, "issue_template.md"),
+		},
+		{
+			name: "No extension",
+			prepare: []string{
+				"README.md",
+				"issue_template",
+				"docs/issue_template.md",
+			},
+			args: args{
+				rootDir: tmpdir,
+				name:    "ISSUE_TEMPLATE",
+			},
+			want: path.Join(tmpdir, "issue_template"),
+		},
+		{
+			name: "Dash instead of underscore",
+			prepare: []string{
+				"README.md",
+				"issue-template.txt",
+				"docs/issue_template.md",
+			},
+			args: args{
+				rootDir: tmpdir,
+				name:    "ISSUE_TEMPLATE",
+			},
+			want: path.Join(tmpdir, "issue-template.txt"),
 		},
 		{
 			name: "Template in .github takes precedence",
@@ -224,8 +249,11 @@ func TestFindLegacy(t *testing.T) {
 				file.Close()
 			}
 
-			if got := FindLegacy(tt.args.rootDir, tt.args.name); *got != tt.want {
-				t.Errorf("Find() = %v, want %v", got, tt.want)
+			got := FindLegacy(tt.args.rootDir, tt.args.name)
+			if got == "" {
+				t.Errorf("FindLegacy() = nil, want %v", tt.want)
+			} else if got != tt.want {
+				t.Errorf("FindLegacy() = %v, want %v", got, tt.want)
 			}
 		})
 		os.RemoveAll(tmpdir)
@@ -233,12 +261,11 @@ func TestFindLegacy(t *testing.T) {
 }
 
 func TestExtractName(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "gh-cli")
+	tmpfile, err := ioutil.TempFile(t.TempDir(), "gh-cli")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tmpfile.Close()
-	defer os.Remove(tmpfile.Name())
+	defer tmpfile.Close()
 
 	type args struct {
 		filePath string
@@ -294,12 +321,11 @@ about: This is how you report bugs
 }
 
 func TestExtractContents(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "gh-cli")
+	tmpfile, err := ioutil.TempFile(t.TempDir(), "gh-cli")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tmpfile.Close()
-	defer os.Remove(tmpfile.Name())
+	defer tmpfile.Close()
 
 	type args struct {
 		filePath string

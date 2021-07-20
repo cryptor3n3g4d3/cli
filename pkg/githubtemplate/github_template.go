@@ -1,6 +1,7 @@
 package githubtemplate
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path"
 	"regexp"
@@ -52,7 +53,9 @@ mainLoop:
 }
 
 // FindLegacy returns the file path of the default(legacy) template
-func FindLegacy(rootDir string, name string) *string {
+func FindLegacy(rootDir string, name string) string {
+	namePattern := regexp.MustCompile(fmt.Sprintf(`(?i)^%s(\.|$)`, strings.ReplaceAll(name, "_", "[_-]")))
+
 	// https://help.github.com/en/github/building-a-strong-community/creating-a-pull-request-template-for-your-repository
 	candidateDirs := []string{
 		path.Join(rootDir, ".github"),
@@ -67,13 +70,12 @@ func FindLegacy(rootDir string, name string) *string {
 
 		// detect a single template file
 		for _, file := range files {
-			if strings.EqualFold(file.Name(), name+".md") {
-				result := path.Join(dir, file.Name())
-				return &result
+			if namePattern.MatchString(file.Name()) && !file.IsDir() {
+				return path.Join(dir, file.Name())
 			}
 		}
 	}
-	return nil
+	return ""
 }
 
 // ExtractName returns the name of the template from YAML front-matter
